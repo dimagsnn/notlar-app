@@ -6,18 +6,34 @@
   <title>Notlarım v2</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* ===================================================================
+       TEMA — Uygulamanın renklerini buradan değiştir.
+       Tek bir satırı değiştirince ilgili her yer otomatik değişir.
+       =================================================================== */
+    :root {
+      --accent:        #3ecf8e;   /* ana renk (butonlar, aktif sekme) */
+      --accent-hover:  #34b87c;   /* butonun üstüne gelince */
+      --accent-text:   #06281b;   /* ana renkli butonların yazı rengi */
+      --page-bg:       #f4f5f7;   /* sayfa arka planı */
+      --card-bg:       #ffffff;   /* kart arka planı */
+      --text:          #1a1a1a;   /* genel yazı rengi */
+    }
+    /* PEMBE tema istersen: yukarıdaki --accent satırlarını şununla değiştir:
+       --accent: #ec4899;  --accent-hover: #db2777;  --accent-text: #ffffff;
+    */
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: #f4f5f7; color: #1a1a1a; min-height: 100vh;
+      background: var(--page-bg); color: var(--text); min-height: 100vh;
       display: flex; align-items: flex-start; justify-content: center;
       padding: 32px 16px;
     }
-    .wrap { width: 100%; max-width: 560px; }
+    .wrap { width: 100%; max-width: 600px; position: relative; }
     h1 { font-size: 22px; margin-bottom: 4px; }
     .sub { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
     h2 { font-size: 15px; margin-bottom: 10px; color: #111827; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .card { background: var(--card-bg); border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
     input, textarea, select {
       width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
@@ -25,10 +41,10 @@
     }
     textarea { resize: vertical; min-height: 60px; }
     button {
-      background: #3ecf8e; color: #06281b; border: none; border-radius: 8px;
+      background: var(--accent); color: var(--accent-text); border: none; border-radius: 8px;
       padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
     }
-    button:hover { background: #34b87c; }
+    button:hover { background: var(--accent-hover); }
     button.ghost { background: #f3f4f6; color: #374151; }
     button.ghost:hover { background: #e5e7eb; }
     button.danger { background: transparent; color: #ef4444; padding: 4px 8px; font-size: 13px; }
@@ -38,7 +54,7 @@
     .row button { flex: none; }
     .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
     .tabs button { flex: 1; background: #f3f4f6; color: #6b7280; }
-    .tabs button.active { background: #3ecf8e; color: #06281b; }
+    .tabs button.active { background: var(--accent); color: var(--accent-text); }
     .note { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 10px; background: #fff; }
     .note.done .note-title { text-decoration: line-through; color: #9ca3af; }
     .note-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
@@ -62,6 +78,46 @@
     .cat-item { display: flex; align-items: center; gap: 4px; background: #f3f4f6; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; }
     .cat-item button { background: transparent; color: #ef4444; padding: 0 4px; font-size: 14px; }
     .hint { font-size: 12px; color: #9ca3af; margin-top: -6px; margin-bottom: 10px; }
+    .preset-btn { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+    .preset-btn:hover { background: #e0e7ff; }
+    .preset-btn.added { opacity: .45; cursor: default; }
+    .preset-btn.added:hover { background: #eef2ff; }
+    .app-grid { display: flex; gap: 16px; align-items: flex-start; }
+    .app-grid .main-col { flex: 1; min-width: 0; }
+    .app-grid .side-col { width: 250px; flex: none; }
+    @media (max-width: 720px) {
+      .app-grid { flex-direction: column; }
+      .app-grid .side-col { width: 100%; }
+    }
+    /* Profil butonu açılır menüsü */
+    .menu-wrap { position: relative; }
+    .menu {
+      position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; min-width: 160px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .menu button {
+      background: transparent; color: #374151; text-align: left;
+      padding: 9px 12px; border-radius: 7px; font-weight: 500; width: 100%;
+    }
+    .menu button:hover { background: #f3f4f6; }
+    #menu-logout { color: #ef4444; }
+    /* Modal (profil düzenle penceresi) */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(17,24,39,.5);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 40px 16px; z-index: 50; overflow-y: auto;
+    }
+    .modal {
+      background: #fff; border-radius: 14px; padding: 22px;
+      width: 100%; max-width: 440px; box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-close { background: transparent; color: #6b7280; font-size: 22px; line-height: 1; padding: 0 6px; }
+    .modal-close:hover { background: transparent; color: #111827; }
+    /* .hidden'ın bu iki bileşende de geçerli olması için (öncelik düzeltmesi) */
+    .menu.hidden, .modal-overlay.hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -114,16 +170,25 @@
     <div id="app-view" class="hidden">
       <div class="topbar">
         <span class="who" id="who"></span>
-        <button class="ghost small" id="logout-btn">Çıkış</button>
+        <div class="menu-wrap">
+          <button class="ghost small" id="profile-btn">Profil ▾</button>
+          <div class="menu hidden" id="profile-menu">
+            <button id="menu-edit">Profil Düzenle</button>
+            <button id="menu-logout">Çıkış yap</button>
+          </div>
+        </div>
       </div>
 
       <!-- Kategoriler -->
       <div class="card">
         <h2>Kategoriler</h2>
-        <div class="row">
-          <input id="cat-name" type="text" placeholder="Yeni kategori (örn. İş)" style="margin-bottom:0" />
+        <p class="hint" style="margin-top:0">Hazır kategoriler — tıklayarak ekle:</p>
+        <div class="cat-list" id="preset-list"></div>
+        <div class="row" style="margin-top:12px">
+          <input id="cat-name" type="text" placeholder="Veya kendi kategorini yaz" style="margin-bottom:0" />
           <button id="cat-add" class="small">Ekle</button>
         </div>
+        <p class="hint" style="margin:10px 0 0">Eklenen kategoriler:</p>
         <div class="cat-list" id="cat-list"></div>
       </div>
 
@@ -154,18 +219,87 @@
       </div>
 
       <div id="notes-list"></div>
+
+      <!-- ===== PROFİL DÜZENLE PENCERESİ (MODAL) ===== -->
+      <div class="modal-overlay hidden" id="profile-modal">
+        <div class="modal">
+          <div class="modal-head">
+            <h2 style="margin:0">Profili Düzenle</h2>
+            <button class="modal-close" id="profile-close">×</button>
+          </div>
+          <p class="hint" id="profile-summary" style="margin-top:0">—</p>
+          <label>Doğum tarihi</label>
+          <input id="p-birth" type="date" />
+          <label>Cinsiyet</label>
+          <select id="p-gender">
+            <option value="">Seçiniz</option>
+            <option value="Kadın">Kadın</option>
+            <option value="Erkek">Erkek</option>
+            <option value="Belirtmek istemiyorum">Belirtmek istemiyorum</option>
+          </select>
+          <label>İl <span class="hint" style="display:inline">(kayıtlı bilgin seçili gelir)</span></label>
+          <select id="p-province"><option value="">Yükleniyor...</option></select>
+          <label>İlçe</label>
+          <select id="p-district"><option value="">Önce il seçin</option></select>
+          <label>Mahalle</label>
+          <select id="p-neighborhood"><option value="">Önce ilçe seçin</option></select>
+          <button id="p-save">Güncelle</button>
+          <div id="p-msg" style="margin-top:10px"></div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
+    // ===== ORTAM AYARLARI (dev / canlı) =====
+    // Her ortamın kendi Supabase projesi var. Aşağıda hepsi tanımlı.
+    const ENVIRONMENTS = {
+      prod: {
+        url: "https://earpoizjdokqfxvjrddb.supabase.co",
+        key: "sb_publishable_Jmeday3M98gN5obj6rB-fQ_r2M8zxSb"
+      },
+      dev: {
+        url: "https://kgrhgiubzposlesavmim.supabase.co",
+        key: "sb_publishable_5F01S8b6i2UJ73QfLRDdjA_XVhOZ5Wo"
+      }
+    };
+
+    // Hangi ortamdayız? Açıldığımız adrese bakıp karar veriyoruz.
+    function detectEnv() {
+      const host = location.hostname; // sitenin açıldığı adres
+      // Canlı adres(ler)i: aşağıdaki listede geçen bir adresteysek "prod"
+      const PROD_HOSTS = ["dimagsnn.github.io"];
+      if (PROD_HOSTS.includes(host)) return "prod";
+      // "dev" geçen bir adresteysek dev (Cloudflare dev linki gibi)
+      if (host.includes("dev")) return "dev";
+      // Geri kalan her durumda (örn. bilgisayarda dosyadan açma) güvenli taraf: dev
+      return "dev";
+    }
+
+    const ENV = detectEnv();
+    const CONFIG = ENVIRONMENTS[ENV];
+
     // ===== Supabase bağlantısı =====
-    const SUPABASE_URL = "https://earpoizjdokqfxvjrddb.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_Jmeday3M98gN5obj6rB-fQ_r2M8zxSb";
+    const SUPABASE_URL = CONFIG.url;
+    const SUPABASE_KEY = CONFIG.key;
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const GEO = "https://api.turkiyeapi.dev/v1"; // il/ilçe/mahalle API
 
+    // Hangi ortamda olduğumuzu ekranda küçük bir rozetle göster
+    window.addEventListener("DOMContentLoaded", () => {
+      const badge = document.createElement("div");
+      badge.textContent = (ENV === "prod" ? "CANLI" : "DEV") + " ortamı";
+      badge.style.cssText =
+        "position:fixed;bottom:10px;right:10px;z-index:999;font-size:11px;" +
+        "padding:4px 10px;border-radius:999px;font-weight:600;color:#fff;" +
+        "background:" + (ENV === "prod" ? "#16a34a" : "#f59e0b") + ";opacity:.85;";
+      document.body.appendChild(badge);
+    });
+
     const $ = (id) => document.getElementById(id);
-    const state = { user: null, categories: [], notes: [], editingId: null, filter: "all", mode: "login" };
+    const state = { user: null, profile: null, categories: [], notes: [], editingId: null, filter: "all", mode: "login" };
+    // Tıklayarak hızlıca eklenebilen hazır kategoriler
+    const PRESET_CATEGORIES = ["Analiz", "Tasarım", "Geliştirme", "Süreç", "Test", "Canlı", "Hata/Düzeltme", "Dokümantasyon"];
 
     function showMsg(target, text, type) {
       target.innerHTML = text ? `<div class="msg ${type}">${text}</div>` : "";
@@ -185,48 +319,76 @@
     }
 
     // ===== İl / İlçe / Mahalle =====
-    async function fetchJson(url) {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error("Konum servisi yanıt vermedi");
-      const j = await r.json();
-      return j.data || [];
+    // API varsayılan 10 kayıt verir ve limit'in üst sınırı vardır.
+    // Bu yüzden 100'erli sayfalarla, hepsi gelene kadar tekrar tekrar isteriz.
+    async function fetchAll(path, extraParams) {
+      const pageSize = 100;
+      let offset = 0, all = [];
+      while (true) {
+        const extra = extraParams ? `&${extraParams}` : "";
+        const url = `${GEO}/${path}?fields=id,name&sort=name&limit=${pageSize}&offset=${offset}${extra}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("Konum servisi yanıt vermedi (" + r.status + ")");
+        const j = await r.json();
+        const data = j.data || [];
+        all = all.concat(data);
+        if (data.length < pageSize) break;   // son sayfaya geldik
+        offset += pageSize;
+        if (offset > 6000) break;            // güvenlik freni
+      }
+      return all;
     }
     function fill(select, items, placeholder) {
       select.innerHTML = `<option value="">${placeholder}</option>` +
         items.map(i => `<option value="${i.id}" data-name="${esc(i.name)}">${esc(i.name)}</option>`).join("");
     }
-    async function loadProvinces() {
+    async function loadProvincesInto(provId) {
       try {
-        const data = await fetchJson(`${GEO}/provinces`);
-        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
-        fill($("province"), data, "İl seçin");
-      } catch (e) { $("province").innerHTML = `<option value="">Yüklenemedi</option>`; }
+        const data = await fetchAll("provinces");
+        fill($(provId), data, "İl seçin");
+      } catch (e) { $(provId).innerHTML = `<option value="">Yüklenemedi</option>`; }
     }
-    $("province").onchange = async () => {
-      const id = $("province").value;
-      $("district").innerHTML = `<option value="">Yükleniyor...</option>`;
-      $("neighborhood").innerHTML = `<option value="">Önce ilçe seçin</option>`;
-      if (!id) return;
-      try {
-        let data = await fetchJson(`${GEO}/districts?provinceId=${id}`);
-        if (!data.length) { const p = await fetchJson(`${GEO}/provinces/${id}`); data = (p.districts) || []; }
-        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
-        fill($("district"), data, "İlçe seçin");
-      } catch (e) { $("district").innerHTML = `<option value="">Yüklenemedi</option>`; }
-    };
-    $("district").onchange = async () => {
-      const id = $("district").value;
-      $("neighborhood").innerHTML = `<option value="">Yükleniyor...</option>`;
-      if (!id) return;
-      try {
-        const data = await fetchJson(`${GEO}/neighborhoods?districtId=${id}&limit=2000`);
-        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
-        fill($("neighborhood"), data, "Mahalle seçin");
-      } catch (e) { $("neighborhood").innerHTML = `<option value="">Yüklenemedi</option>`; }
-    };
+    async function loadDistrictsInto(distId, provinceId) {
+      try { fill($(distId), await fetchAll("districts", `provinceId=${provinceId}`), "İlçe seçin"); }
+      catch (e) { $(distId).innerHTML = `<option value="">Yüklenemedi</option>`; }
+    }
+    async function loadNeighborhoodsInto(neighId, districtId) {
+      try { fill($(neighId), await fetchAll("neighborhoods", `districtId=${districtId}`), "Mahalle seçin"); }
+      catch (e) { $(neighId).innerHTML = `<option value="">Yüklenemedi</option>`; }
+    }
+    // Bir grup il/ilçe/mahalle açılır kutusunu birbirine bağlar
+    function wireCascade(provId, distId, neighId) {
+      $(provId).onchange = async () => {
+        const id = $(provId).value;
+        $(distId).innerHTML = `<option value="">${id ? "Yükleniyor..." : "Önce il seçin"}</option>`;
+        $(neighId).innerHTML = `<option value="">Önce ilçe seçin</option>`;
+        if (id) await loadDistrictsInto(distId, id);
+      };
+      $(distId).onchange = async () => {
+        const id = $(distId).value;
+        $(neighId).innerHTML = `<option value="">${id ? "Yükleniyor..." : "Önce ilçe seçin"}</option>`;
+        if (id) await loadNeighborhoodsInto(neighId, id);
+      };
+    }
+    // Kayıt formu için bağla
+    wireCascade("province", "district", "neighborhood");
+    // Profil penceresi için bağla
+    wireCascade("p-province", "p-district", "p-neighborhood");
+
+    function loadProvinces() { return loadProvincesInto("province"); }
+
     function selectedName(id) {
       const sel = $(id); const opt = sel.options[sel.selectedIndex];
       return opt ? (opt.getAttribute("data-name") || "") : "";
+    }
+    // Açılır kutuda, isme göre (data-name) seçim yapar; bulduğu option'ın value'sunu döndürür
+    function selectByName(selId, name) {
+      if (!name) return "";
+      const sel = $(selId);
+      for (const opt of sel.options) {
+        if (opt.getAttribute("data-name") === name) { sel.value = opt.value; return opt.value; }
+      }
+      return "";
     }
 
     // ===== Giriş / Kayıt gönder =====
@@ -262,7 +424,29 @@
       }
     };
 
-    $("logout-btn").onclick = async () => { await db.auth.signOut(); refresh(); };
+    // ===== Profil butonu menüsü + modal =====
+    function toggleMenu(show) {
+      const menu = $("profile-menu");
+      const open = show ?? menu.classList.contains("hidden");
+      menu.classList.toggle("hidden", !open);
+    }
+    $("profile-btn").onclick = (e) => { e.stopPropagation(); toggleMenu(); };
+    // Menü dışına tıklanınca kapan
+    document.addEventListener("click", () => toggleMenu(false));
+    $("profile-menu").onclick = (e) => e.stopPropagation();
+
+    async function openProfileModal() {
+      showMsg($("p-msg"), "", "");
+      $("profile-modal").classList.remove("hidden");
+      await fillProfileForm();
+    }
+    function closeProfileModal() { $("profile-modal").classList.add("hidden"); }
+
+    $("menu-edit").onclick = () => { toggleMenu(false); openProfileModal(); };
+    $("menu-logout").onclick = async () => { toggleMenu(false); await db.auth.signOut(); refresh(); };
+    $("profile-close").onclick = closeProfileModal;
+    // Karartılmış alana (pencerenin dışına) tıklayınca kapan
+    $("profile-modal").onclick = (e) => { if (e.target === $("profile-modal")) closeProfileModal(); };
 
     // ===== Oturum durumu =====
     async function refresh() {
@@ -281,14 +465,79 @@
       }
     }
 
+    let profileProvincesLoaded = false;
     async function loadProfile() {
       const { data } = await db.from("profiles").select("*").eq("id", state.user.id).maybeSingle();
-      let loc = "";
-      if (data && (data.province || data.district)) {
-        loc = `<br>${esc([data.neighborhood, data.district, data.province].filter(Boolean).join(" / "))}`;
-      }
-      $("who").innerHTML = `<b>${esc(state.user.email)}</b>${loc}`;
+      state.profile = data || {};
+
+      // Üst bardaki kısa gösterim
+      $("who").innerHTML = `<b>${esc(state.user.email)}</b>`;
+
+      // Pencere içindeki özet satırı
+      const parts = [data?.neighborhood, data?.district, data?.province].filter(Boolean);
+      const summary = [];
+      if (data?.birth_date) summary.push("Doğum: " + data.birth_date);
+      if (data?.gender) summary.push(data.gender);
+      if (parts.length) summary.push(parts.join(" / "));
+      $("profile-summary").textContent = summary.length ? summary.join(" · ") : "Henüz bilgi girilmemiş.";
     }
+
+    // Profil penceresindeki tüm alanları kayıtlı bilgilerle doldurur (konum dahil)
+    async function fillProfileForm() {
+      const p = state.profile || {};
+      $("p-birth").value = p.birth_date || "";
+      $("p-gender").value = p.gender || "";
+
+      // İl listesini bir kez yükle
+      if (!profileProvincesLoaded) {
+        await loadProvincesInto("p-province");
+        profileProvincesLoaded = true;
+      }
+      // İlçe/mahalleyi sıfırla, sonra kayıtlı konumu seçili getir
+      $("p-province").value = "";
+      $("p-district").innerHTML = `<option value="">Önce il seçin</option>`;
+      $("p-neighborhood").innerHTML = `<option value="">Önce ilçe seçin</option>`;
+
+      if (p.province) {
+        const provId = selectByName("p-province", p.province);
+        if (provId) {
+          await loadDistrictsInto("p-district", provId);
+          if (p.district) {
+            const distId = selectByName("p-district", p.district);
+            if (distId) {
+              await loadNeighborhoodsInto("p-neighborhood", distId);
+              if (p.neighborhood) selectByName("p-neighborhood", p.neighborhood);
+            }
+          }
+        }
+      }
+    }
+
+    // Profil güncelle
+    $("p-save").onclick = async () => {
+      const update = {
+        id: state.user.id,
+        birth_date: $("p-birth").value || null,
+        gender: $("p-gender").value || null
+      };
+      // Konum sadece yeni bir il seçildiyse güncellenir; aksi halde mevcut kalır
+      if ($("p-province").value) {
+        update.province = selectedName("p-province") || null;
+        update.district = selectedName("p-district") || null;
+        update.neighborhood = selectedName("p-neighborhood") || null;
+      } else {
+        update.province = state.profile?.province || null;
+        update.district = state.profile?.district || null;
+        update.neighborhood = state.profile?.neighborhood || null;
+      }
+      showMsg($("p-msg"), "Kaydediliyor...", "ok");
+      // upsert: profil yoksa oluşturur, varsa günceller
+      const { error } = await db.from("profiles").upsert(update);
+      if (error) return showMsg($("p-msg"), "Hata: " + error.message, "err");
+      showMsg($("p-msg"), "Profil güncellendi.", "ok");
+      await loadProfile();
+      await fillProfileForm();
+    };
 
     // ===== Kategoriler =====
     $("cat-add").onclick = async () => {
@@ -309,6 +558,7 @@
       $("cat-list").innerHTML = state.categories.length
         ? state.categories.map(c => `<span class="cat-item">${esc(c.name)}<button onclick="deleteCategory(${c.id})">×</button></span>`).join("")
         : `<span class="empty" style="padding:6px 0">Henüz kategori yok.</span>`;
+      renderPresets();
       const opts = `<option value="">Kategorisiz</option>` +
         state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
       $("note-category").innerHTML = opts;
@@ -316,6 +566,21 @@
         state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
       $("filter-category").value = state.filter;
     }
+    function renderPresets() {
+      const added = new Set(state.categories.map(c => c.name.toLocaleLowerCase("tr")));
+      $("preset-list").innerHTML = PRESET_CATEGORIES.map(name => {
+        const isAdded = added.has(name.toLocaleLowerCase("tr"));
+        return `<button class="preset-btn ${isAdded ? "added" : ""}" ${isAdded ? "disabled" : ""}
+          onclick="addPreset('${name}')">${esc(name)}${isAdded ? " ✓" : ""}</button>`;
+      }).join("");
+    }
+    window.addPreset = async (name) => {
+      const exists = state.categories.some(c => c.name.toLocaleLowerCase("tr") === name.toLocaleLowerCase("tr"));
+      if (exists) return;
+      const { error } = await db.from("categories").insert({ name });
+      if (error) return showMsg($("app-msg"), "Kategori eklenemedi: " + error.message, "err");
+      await loadCategories();
+    };
     window.deleteCategory = async (id) => {
       const { error } = await db.from("categories").delete().eq("id", id);
       if (error) return showMsg($("app-msg"), "Silinemedi: " + error.message, "err");
