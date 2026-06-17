@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notlarım v2</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f4f5f7; color: #1a1a1a; min-height: 100vh;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 32px 16px;
+    }
+    .wrap { width: 100%; max-width: 560px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    .sub { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+    h2 { font-size: 15px; margin-bottom: 10px; color: #111827; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    input, textarea, select {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 10px 12px; font-size: 14px; font-family: inherit; margin-bottom: 12px; background: #fff;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    button {
+      background: #3ecf8e; color: #06281b; border: none; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #34b87c; }
+    button.ghost { background: #f3f4f6; color: #374151; }
+    button.ghost:hover { background: #e5e7eb; }
+    button.danger { background: transparent; color: #ef4444; padding: 4px 8px; font-size: 13px; }
+    button.small { padding: 6px 10px; font-size: 13px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > * { flex: 1; }
+    .row button { flex: none; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tabs button { flex: 1; background: #f3f4f6; color: #6b7280; }
+    .tabs button.active { background: #3ecf8e; color: #06281b; }
+    .note { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 10px; background: #fff; }
+    .note.done .note-title { text-decoration: line-through; color: #9ca3af; }
+    .note-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+    .note-content { font-size: 14px; color: #4b5563; white-space: pre-wrap; margin-bottom: 6px; }
+    .note-img { max-width: 100%; border-radius: 8px; margin: 6px 0; }
+    .chip { display: inline-block; font-size: 12px; background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 999px; }
+    .note-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; }
+    .note-date { font-size: 12px; color: #9ca3af; }
+    .note-actions { display: flex; gap: 4px; align-items: center; }
+    .check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #374151; cursor: pointer; }
+    .check input { width: auto; margin: 0; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .who { font-size: 13px; color: #6b7280; line-height: 1.4; }
+    .who b { color: #111827; }
+    .msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+    .msg.err { background: #fef2f2; color: #b91c1c; }
+    .msg.ok { background: #f0fdf4; color: #166534; }
+    .empty { text-align: center; color: #9ca3af; font-size: 14px; padding: 20px 0; }
+    .hidden { display: none; }
+    .cat-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .cat-item { display: flex; align-items: center; gap: 4px; background: #f3f4f6; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; }
+    .cat-item button { background: transparent; color: #ef4444; padding: 0 4px; font-size: 14px; }
+    .hint { font-size: 12px; color: #9ca3af; margin-top: -6px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Notlarım</h1>
+    <p class="sub">Profil · kategori · todo · dosya — Supabase ile</p>
+
+    <div id="auth-msg"></div>
+
+    <!-- ===== GİRİŞ / KAYIT EKRANI ===== -->
+    <div id="auth-view" class="card">
+      <div class="tabs">
+        <button id="tab-login" class="active">Giriş yap</button>
+        <button id="tab-signup">Kayıt ol</button>
+      </div>
+
+      <label>E-posta</label>
+      <input id="email" type="email" placeholder="ornek@mail.com" />
+      <label>Şifre</label>
+      <input id="password" type="password" placeholder="••••••" />
+
+      <!-- Sadece kayıt modunda görünen ek alanlar -->
+      <div id="signup-extra" class="hidden">
+        <label>Doğum tarihi</label>
+        <input id="birth-date" type="date" />
+
+        <label>Cinsiyet</label>
+        <select id="gender">
+          <option value="">Seçiniz</option>
+          <option value="Kadın">Kadın</option>
+          <option value="Erkek">Erkek</option>
+          <option value="Belirtmek istemiyorum">Belirtmek istemiyorum</option>
+        </select>
+
+        <label>İl</label>
+        <select id="province"><option value="">Yükleniyor...</option></select>
+
+        <label>İlçe</label>
+        <select id="district"><option value="">Önce il seçin</option></select>
+
+        <label>Mahalle</label>
+        <select id="neighborhood"><option value="">Önce ilçe seçin</option></select>
+        <p class="hint">İl/ilçe/mahalle verileri turkiyeapi.dev üzerinden çekilir.</p>
+      </div>
+
+      <button id="submit-btn">Giriş yap</button>
+    </div>
+
+    <!-- ===== UYGULAMA EKRANI ===== -->
+    <div id="app-view" class="hidden">
+      <div class="topbar">
+        <span class="who" id="who"></span>
+        <button class="ghost small" id="logout-btn">Çıkış</button>
+      </div>
+
+      <!-- Kategoriler -->
+      <div class="card">
+        <h2>Kategoriler</h2>
+        <div class="row">
+          <input id="cat-name" type="text" placeholder="Yeni kategori (örn. İş)" style="margin-bottom:0" />
+          <button id="cat-add" class="small">Ekle</button>
+        </div>
+        <div class="cat-list" id="cat-list"></div>
+      </div>
+
+      <!-- Yeni not -->
+      <div class="card">
+        <h2>Yeni not</h2>
+        <label>Başlık</label>
+        <input id="note-title" type="text" placeholder="Not başlığı" />
+        <label>İçerik</label>
+        <textarea id="note-content" placeholder="Not içeriği..."></textarea>
+        <label>Kategori</label>
+        <select id="note-category"><option value="">Kategorisiz</option></select>
+        <label>Resim (opsiyonel)</label>
+        <input id="note-image" type="file" accept="image/*" />
+        <button id="add-btn">Not ekle</button>
+      </div>
+
+      <div id="app-msg"></div>
+
+      <!-- Filtre -->
+      <div class="card" style="padding:12px 20px">
+        <div class="row" style="align-items:center">
+          <label style="margin:0">Kategoriye göre filtrele</label>
+          <select id="filter-category" style="margin:0">
+            <option value="all">Tümü</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="notes-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Supabase bağlantısı =====
+    const SUPABASE_URL = "https://earpoizjdokqfxvjrddb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Jmeday3M98gN5obj6rB-fQ_r2M8zxSb";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const GEO = "https://api.turkiyeapi.dev/v1"; // il/ilçe/mahalle API
+
+    const $ = (id) => document.getElementById(id);
+    const state = { user: null, categories: [], notes: [], editingId: null, filter: "all", mode: "login" };
+
+    function showMsg(target, text, type) {
+      target.innerHTML = text ? `<div class="msg ${type}">${text}</div>` : "";
+    }
+    function esc(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
+
+    // ===== Sekme: Giriş / Kayıt =====
+    $("tab-login").onclick = () => setMode("login");
+    $("tab-signup").onclick = () => setMode("signup");
+    function setMode(mode) {
+      state.mode = mode;
+      $("tab-login").classList.toggle("active", mode === "login");
+      $("tab-signup").classList.toggle("active", mode === "signup");
+      $("signup-extra").classList.toggle("hidden", mode !== "signup");
+      $("submit-btn").textContent = mode === "login" ? "Giriş yap" : "Kayıt ol";
+      if (mode === "signup" && $("province").options.length <= 1) loadProvinces();
+    }
+
+    // ===== İl / İlçe / Mahalle =====
+    async function fetchJson(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Konum servisi yanıt vermedi");
+      const j = await r.json();
+      return j.data || [];
+    }
+    function fill(select, items, placeholder) {
+      select.innerHTML = `<option value="">${placeholder}</option>` +
+        items.map(i => `<option value="${i.id}" data-name="${esc(i.name)}">${esc(i.name)}</option>`).join("");
+    }
+    async function loadProvinces() {
+      try {
+        const data = await fetchJson(`${GEO}/provinces`);
+        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+        fill($("province"), data, "İl seçin");
+      } catch (e) { $("province").innerHTML = `<option value="">Yüklenemedi</option>`; }
+    }
+    $("province").onchange = async () => {
+      const id = $("province").value;
+      $("district").innerHTML = `<option value="">Yükleniyor...</option>`;
+      $("neighborhood").innerHTML = `<option value="">Önce ilçe seçin</option>`;
+      if (!id) return;
+      try {
+        let data = await fetchJson(`${GEO}/districts?provinceId=${id}`);
+        if (!data.length) { const p = await fetchJson(`${GEO}/provinces/${id}`); data = (p.districts) || []; }
+        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+        fill($("district"), data, "İlçe seçin");
+      } catch (e) { $("district").innerHTML = `<option value="">Yüklenemedi</option>`; }
+    };
+    $("district").onchange = async () => {
+      const id = $("district").value;
+      $("neighborhood").innerHTML = `<option value="">Yükleniyor...</option>`;
+      if (!id) return;
+      try {
+        const data = await fetchJson(`${GEO}/neighborhoods?districtId=${id}&limit=2000`);
+        data.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+        fill($("neighborhood"), data, "Mahalle seçin");
+      } catch (e) { $("neighborhood").innerHTML = `<option value="">Yüklenemedi</option>`; }
+    };
+    function selectedName(id) {
+      const sel = $(id); const opt = sel.options[sel.selectedIndex];
+      return opt ? (opt.getAttribute("data-name") || "") : "";
+    }
+
+    // ===== Giriş / Kayıt gönder =====
+    $("submit-btn").onclick = async () => {
+      const email = $("email").value.trim();
+      const password = $("password").value;
+      if (!email || !password) return showMsg($("auth-msg"), "E-posta ve şifre gerekli.", "err");
+
+      if (state.mode === "login") {
+        showMsg($("auth-msg"), "Giriş yapılıyor...", "ok");
+        const { error } = await db.auth.signInWithPassword({ email, password });
+        if (error) return showMsg($("auth-msg"), "Hata: " + error.message, "err");
+        showMsg($("auth-msg"), "", ""); refresh();
+      } else {
+        showMsg($("auth-msg"), "Kayıt yapılıyor...", "ok");
+        const { data, error } = await db.auth.signUp({ email, password });
+        if (error) return showMsg($("auth-msg"), "Hata: " + error.message, "err");
+        if (!data.session) {
+          return showMsg($("auth-msg"), "Kayıt alındı ama oturum açılmadı. E-posta doğrulaması açık olabilir; Authentication ayarlarından kapatıp tekrar deneyin.", "err");
+        }
+        // Profil bilgisini kaydet
+        const { error: pErr } = await db.from("profiles").insert({
+          id: data.user.id,
+          birth_date: $("birth-date").value || null,
+          gender: $("gender").value || null,
+          province: selectedName("province") || null,
+          district: selectedName("district") || null,
+          neighborhood: selectedName("neighborhood") || null
+        });
+        if (pErr) showMsg($("auth-msg"), "Kullanıcı oluştu ama profil kaydı başarısız: " + pErr.message, "err");
+        else showMsg($("auth-msg"), "", "");
+        refresh();
+      }
+    };
+
+    $("logout-btn").onclick = async () => { await db.auth.signOut(); refresh(); };
+
+    // ===== Oturum durumu =====
+    async function refresh() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) {
+        state.user = session.user;
+        $("auth-view").classList.add("hidden");
+        $("app-view").classList.remove("hidden");
+        await loadProfile();
+        await loadCategories();
+        await loadNotes();
+      } else {
+        state.user = null;
+        $("auth-view").classList.remove("hidden");
+        $("app-view").classList.add("hidden");
+      }
+    }
+
+    async function loadProfile() {
+      const { data } = await db.from("profiles").select("*").eq("id", state.user.id).maybeSingle();
+      let loc = "";
+      if (data && (data.province || data.district)) {
+        loc = `<br>${esc([data.neighborhood, data.district, data.province].filter(Boolean).join(" / "))}`;
+      }
+      $("who").innerHTML = `<b>${esc(state.user.email)}</b>${loc}`;
+    }
+
+    // ===== Kategoriler =====
+    $("cat-add").onclick = async () => {
+      const name = $("cat-name").value.trim();
+      if (!name) return;
+      const { error } = await db.from("categories").insert({ name });
+      if (error) return showMsg($("app-msg"), "Kategori eklenemedi: " + error.message, "err");
+      $("cat-name").value = "";
+      await loadCategories();
+    };
+    async function loadCategories() {
+      const { data, error } = await db.from("categories").select("*").order("name");
+      if (error) { showMsg($("app-msg"), "Kategoriler yüklenemedi: " + error.message, "err"); return; }
+      state.categories = data || [];
+      renderCategories();
+    }
+    function renderCategories() {
+      $("cat-list").innerHTML = state.categories.length
+        ? state.categories.map(c => `<span class="cat-item">${esc(c.name)}<button onclick="deleteCategory(${c.id})">×</button></span>`).join("")
+        : `<span class="empty" style="padding:6px 0">Henüz kategori yok.</span>`;
+      const opts = `<option value="">Kategorisiz</option>` +
+        state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+      $("note-category").innerHTML = opts;
+      $("filter-category").innerHTML = `<option value="all">Tümü</option>` +
+        state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+      $("filter-category").value = state.filter;
+    }
+    window.deleteCategory = async (id) => {
+      const { error } = await db.from("categories").delete().eq("id", id);
+      if (error) return showMsg($("app-msg"), "Silinemedi: " + error.message, "err");
+      if (state.filter == id) state.filter = "all";
+      await loadCategories(); await loadNotes();
+    };
+
+    // ===== Notlar =====
+    $("filter-category").onchange = () => { state.filter = $("filter-category").value; renderNotes(); };
+
+    $("add-btn").onclick = async () => {
+      const title = $("note-title").value.trim();
+      const content = $("note-content").value.trim();
+      const categoryId = $("note-category").value || null;
+      if (!title) return showMsg($("app-msg"), "Başlık boş olamaz.", "err");
+
+      let imageUrl = null;
+      const file = $("note-image").files[0];
+      if (file) {
+        showMsg($("app-msg"), "Resim yükleniyor...", "ok");
+        const path = `${state.user.id}/${Date.now()}_${file.name}`;
+        const { error: upErr } = await db.storage.from("note-images").upload(path, file);
+        if (upErr) return showMsg($("app-msg"), "Resim yüklenemedi: " + upErr.message, "err");
+        imageUrl = db.storage.from("note-images").getPublicUrl(path).data.publicUrl;
+      }
+
+      const { error } = await db.from("notes").insert({
+        title, content, category_id: categoryId, image_url: imageUrl
+      });
+      if (error) return showMsg($("app-msg"), "Eklenemedi: " + error.message, "err");
+
+      $("note-title").value = ""; $("note-content").value = "";
+      $("note-category").value = ""; $("note-image").value = "";
+      showMsg($("app-msg"), "", "");
+      await loadNotes();
+    };
+
+    async function loadNotes() {
+      const { data, error } = await db
+        .from("notes")
+        .select("*, categories(name)")
+        .order("created_at", { ascending: false });
+      if (error) { showMsg($("app-msg"), "Notlar yüklenemedi: " + error.message, "err"); return; }
+      state.notes = data || [];
+      renderNotes();
+    }
+
+    function renderNotes() {
+      const list = $("notes-list");
+      let notes = state.notes;
+      if (state.filter !== "all") notes = notes.filter(n => String(n.category_id) === String(state.filter));
+
+      if (!notes.length) { list.innerHTML = `<div class="empty">Burada gösterilecek not yok.</div>`; return; }
+
+      list.innerHTML = notes.map(n => {
+        if (n.id === state.editingId) {
+          const opts = `<option value="">Kategorisiz</option>` +
+            state.categories.map(c => `<option value="${c.id}" ${c.id === n.category_id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+          return `<div class="note">
+            <input id="edit-title-${n.id}" value="${esc(n.title)}" />
+            <textarea id="edit-content-${n.id}">${esc(n.content || "")}</textarea>
+            <select id="edit-cat-${n.id}">${opts}</select>
+            <div class="row" style="margin-top:6px">
+              <button class="small" onclick="saveEdit(${n.id})">Kaydet</button>
+              <button class="ghost small" onclick="cancelEdit()">İptal</button>
+            </div>
+          </div>`;
+        }
+        const cat = n.categories ? `<span class="chip">${esc(n.categories.name)}</span>` : "";
+        const img = n.image_url ? `<img class="note-img" src="${esc(n.image_url)}" alt="" />` : "";
+        return `<div class="note ${n.is_done ? "done" : ""}">
+          <div class="note-title">${esc(n.title)} ${cat}</div>
+          <div class="note-content">${esc(n.content || "")}</div>
+          ${img}
+          <div class="note-foot">
+            <label class="check">
+              <input type="checkbox" ${n.is_done ? "checked" : ""} onchange="toggleDone(${n.id}, this.checked)" />
+              Tamamlandı
+            </label>
+            <div class="note-actions">
+              <span class="note-date">${new Date(n.created_at).toLocaleDateString("tr-TR")}</span>
+              <button class="ghost small" onclick="startEdit(${n.id})">Düzenle</button>
+              <button class="danger" onclick="deleteNote(${n.id})">Sil</button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    window.toggleDone = async (id, value) => {
+      const { error } = await db.from("notes").update({ is_done: value }).eq("id", id);
+      if (error) return showMsg($("app-msg"), "Güncellenemedi: " + error.message, "err");
+      await loadNotes();
+    };
+    window.startEdit = (id) => { state.editingId = id; renderNotes(); };
+    window.cancelEdit = () => { state.editingId = null; renderNotes(); };
+    window.saveEdit = async (id) => {
+      const title = $(`edit-title-${id}`).value.trim();
+      const content = $(`edit-content-${id}`).value.trim();
+      const categoryId = $(`edit-cat-${id}`).value || null;
+      if (!title) return showMsg($("app-msg"), "Başlık boş olamaz.", "err");
+      const { error } = await db.from("notes").update({ title, content, category_id: categoryId }).eq("id", id);
+      if (error) return showMsg($("app-msg"), "Güncellenemedi: " + error.message, "err");
+      state.editingId = null;
+      await loadNotes();
+    };
+    window.deleteNote = async (id) => {
+      const { error } = await db.from("notes").delete().eq("id", id);
+      if (error) return showMsg($("app-msg"), "Silinemedi: " + error.message, "err");
+      await loadNotes();
+    };
+
+    // Başlat
+    refresh();
+  </script>
+</body>
+</html>
