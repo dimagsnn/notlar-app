@@ -268,7 +268,7 @@
     function detectEnv() {
       const host = location.hostname; // sitenin açıldığı adres
       // Canlı adres(ler)i: aşağıdaki listede geçen bir adresteysek "prod"
-      const PROD_HOSTS = ["dimagsnn.github.io"];
+      const PROD_HOSTS = ["dimagsnn.github.io", "delightful-jelly-d2cb88.netlify.app"];
       if (PROD_HOSTS.includes(host)) return "prod";
       // "dev" geçen bir adresteysek dev (Cloudflare dev linki gibi)
       if (host.includes("dev")) return "dev";
