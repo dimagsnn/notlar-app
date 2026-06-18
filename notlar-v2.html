@@ -595,7 +595,8 @@
       const title = $("note-title").value.trim();
       const content = $("note-content").value.trim();
       const categoryId = $("note-category").value || null;
-      if (!title) return showMsg($("app-msg"), "Başlık boş olamaz.", "err");
+      if (!title) return showMsg($("app-msg"), "Başlık zorunludur.", "err");
+      if (!content) return showMsg($("app-msg"), "Açıklama zorunludur.", "err");
 
       let imageUrl = null;
       const file = $("note-image").files[0];
